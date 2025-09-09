@@ -10,31 +10,6 @@
 add_filter( 'sanitize_file_name', 'mb_strtolower' );
 
 /**
- * Disable admin bar
- *
- * Turns off the WordPress admin bar for everyone except administrators.
- * 
- * This is a sample snippet. Feel free to use it, edit it, or remove it.
- */
-add_action( 'wp', function () {
-	if ( ! current_user_can( 'manage_options' ) ) {
-		show_admin_bar( false );
-	}
-} );
-
-/**
- * Allow smilies
- *
- * Allows smiley conversion in obscure places.
- * 
- * This is a sample snippet. Feel free to use it, edit it, or remove it.
- */
-add_filter( 'widget_text', 'convert_smilies' );
-add_filter( 'the_title', 'convert_smilies' );
-add_filter( 'wp_title', 'convert_smilies' );
-add_filter( 'get_bloginfo', 'convert_smilies' );
-
-/**
  * Current year
  *
  * Shortcode for inserting the current year into a post or page..
@@ -54,99 +29,17 @@ add_shortcode( 'code_snippets_export_4', function () {
 /**
  * Show_Form_Uploads
  */
+//causes Media Library to show attachments uploaded via forms
 add_action( 'pre_get_posts', 'frm_remove_media_filtering', 1 );
 function frm_remove_media_filtering () { 
     remove_action( 'pre_get_posts', 'FrmProFileField::filter_media_library', 99 );
 }
 
 /**
- * Get_PostID
- */
-add_action('frm_after_create_entry', 'save_attachment_id', 60, 2);
-function save_attachment_id( $entry_id, $form_id ) {
-        if ( $form_id == 68 ) {// Replace 68 with the ID of your form
-		$entry = FrmEntry::getOne( $entry_id );
-
-		if ( ! $entry->attachment_id ) {
-			return;
-		}
-
-		FrmEntryMeta::add_entry_meta( $entry_id, 723, "", $entry->attachment_id); // Replace 723 with the ID of the field where the ID should be saved
-	}
-}
-
-/**
- * Test_setCategory
- */
-function test_category_update() {
-	$post_id = 15728;
-$uploadCategory = array(8 );
-	 $post_id['post_category'] = $uploadCategory;
-  wp_update_post( $post_id);
- }
-
-/**
- * Add_Attachment_Test
- */
-add_action( "add_attachment", "execute_on_add_attachment_event" , 10, 1);
-function execute_on_add_attachment_event($attachment_id){
-$uploadCategory = array(976);
-wp_set_object_terms( $attachment_id, $uploadCategory, 'category' );}
-
-/**
- * Attachment_Postprocessing
- */
-// add_action( "add_attachment", "execute_on_add_attachment_event" , 10, 1);
-function execute_on_add_attachment_event($attachment_id, $doctype, $title) {
-//	echo "Attachment is " . $attachment_id . "<br>";
-//	echo "Doctype is " . $doctype . "<br>";
-//	$title = date('Y-m' );
-	$dotitle = false;
-switch ($doctype) {
-  case 'Minutes':
-		$uploadCategory = array(1034,974,933,923);
-		$dotitle = true;
-        break;
-  case 'Treasurer Report':
-		$uploadCategory = array(1034,935);
-		$dotitle = true;
-        break;
-  case 'Newsletter':
-		$uploadCategory = array(1034,975,922,937);
-		$dotitle = true;
-		break;
-  case 'Flyer':
-		$uploadCategory = array(1034,976);
-		break;
-  case 'Graphic/Image':
-		$uploadCategory = array(1034,977);
-		break;
-  default:
-    	$uploadCategory = array(1034);
-		break;
-}
-wp_set_object_terms( $attachment_id, $uploadCategory, 'category' );
-  if ($dotitle) {
-  // place the current post and $new_title into array
-  $post_update = array(
-    'ID'         => $attachment_id,
-    'post_title' => $title
-  );
-	
-	 $updatedtitle = wp_update_post( $post_update );
-	        if (is_wp_error($attachment_id)) {
-                // There was an error
-                echo "Error updating title";
-            } else {
-                // Updated successfully!
-                echo "Title updated successfully with ID: " . $attachment_id . "<br>";
-	        }
-  }
-}
-
-/**
  * Upload_Form_Flyer_Title
  */
+//form to capture upload metadata, passes to attachment post-processor to update upload metadata
+//this version captures flyer title as well as doctype and year-month
 function myFileUploader() {
 	if (isset($_POST['submit'])) {
 	require_once( ABSPATH . 'wp-admin/includes/image.php' );
@@ -221,79 +114,9 @@ function myFileUploaderRenderer() {
 add_shortcode('custom_file_uploader', 'myFileUploaderRenderer');
 
 /**
- * Form_Processing
- */
-add_action( "processUpload", "uploadFiles" , 10, 1);
-function uploadFiles() {
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    require_once( ABSPATH . 'wp-admin/includes/image.php' );
-    require_once( ABSPATH . 'wp-admin/includes/file.php' );
-    require_once( ABSPATH . 'wp-admin/includes/media.php' );
-
-    $files = $_FILES["my_file_upload"];
-            $file = array(
-                'name' => $files['name'][$key],
-                'type' => $files['type'][$key],
-                'tmp_name' => $files['tmp_name'][$key],
-                'error' => $files['error'][$key],
-                'size' => $files['size'][$key]
-            );
-            $_FILES = array("upload_file" => $file);
-            $attachment_id = media_handle_upload("upload_file", 0);
-
-            if (is_wp_error($attachment_id)) {
-                // There was an error uploading the image.
-                echo "Error adding file";
-            } else {
-                // The image was uploaded successfully!
-                echo "File added successfully with ID: " . $attachment_id . "<br>";
-                echo wp_get_attachment_image($attachment_id, array(800, 600)) . "<br>"; //Display the uploaded image with a size you wish. In this case it is 800x600
-            }
-} 
-}
-
-/**
- * Update_Title
- */
-function update_title($attachment_ID, $new_title) {
-    echo "Attachment is " . $attachment_id . "<br>";
-    echo "Title is " . $doctype . "<br>";
-
-// if new_title isn't defined, return
-  if ( empty ( $new_title ) ) {
-      echo "Title is empty";
-	  return;
-  }    
-
-  // ensure title case of $new_title
-  $new_title = mb_convert_case( $new_title, MB_CASE_TITLE, "UTF-8" );
-
-  // if $new_title is defined, but it matches the current title, return
-  if ( $attachmentID->post_title === $new_title ) {
-	  echo "No change in title";
-      return;
-  }
-
-  // place the current post and $new_title into array
-  $post_update = array(
-    'ID'         => $attachment_ID->ID,
-    'post_title' => $new_title
-  );
-	
-	 $updatedtitle = wp_update_post( $post_update );
-	        if (is_wp_error($attachment_id)) {
-                // There was an error uploading the image.
-                echo "Error updating title";
-            } else {
-                // The image was uploaded successfully!
-                echo "Title updated successfully with ID: " . $attachment_id . "<br>";
-	   }
-}
-add_shortcode('test_titleUpdate', 'update_title');
-
-/**
  * Upload_Form [Backup]
  */
+//form to capture upload metadata, passes to attachment post-processor to update upload metadata; this is an older version
 function myFileUploader() {
 	if (isset($_POST['submit'])) {
 	require_once( ABSPATH . 'wp-admin/includes/image.php' );
@@ -353,6 +176,8 @@ add_shortcode('custom_file_uploader', 'myFileUploaderRenderer');
 /**
  * Upload_Form_no_Flyer_Desc
  */
+//form to capture upload metadata, passes to attachment post-processor to update upload metadata
+//Used on https://district10nia.org/upload_page/
 function myFileUploader() {
 	if (isset($_POST['submit'])) {
 	require_once( ABSPATH . 'wp-admin/includes/image.php' );
@@ -379,6 +204,7 @@ function myFileUploader() {
      
 	  <input type="file" name="fileToUpload" id="fileToUpload" required></input>
 	  <br>
+	  <br>
       <label for="doctype">Choose a document type:</label>
       <select id="doctype" name="doctype" required>
 	    <option value="default" disabled selected="selected" >Select from List </option>
@@ -403,7 +229,6 @@ function myFileUploader() {
 		document.getElementById("doctitle").style.maxWidth = "65px";
 		document.getElementById("doctitle").value = datetitle;
 		var foobar = document.getElementById("doctype").value
-		window.alert(foobar)
 	  </script>
 	  <br>
 	  <br>
@@ -426,6 +251,8 @@ add_shortcode('custom_file_uploader', 'myFileUploaderRenderer');
  * Formidable Validate Group # Entry
  */
 add_filter('frm_validate_field_entry', 'my_custom_validation', 10, 3);
+//this function ensures group number is valid 9-digit number
+//was used with Formidable Form ID 69 when we were validating group numbers
 function my_custom_validation($errors, $posted_field, $posted_value){
 //	 echo("Validating field".$posted_field->id." ".$posted_value);
   if ( $posted_field->id == 747){ //change 25 to the ID of the field to validate
@@ -492,16 +319,9 @@ function cvp_theme_link_media_file_directly( $args, $post ) {
 }
 
 /**
- * Test Formidable API
- */
-import district10nia.org
-
-api = district10nia.authorize('IO6T-ELZD-QF1A-T0N3')
-api.district10nia.get()
-
-/**
  * Enable Formidable URL Export
  */
+//code that allows formidable form entries to be exported
 add_action(
 	'wp_ajax_nopriv_frm_entries_csv',
 	function() {
@@ -525,6 +345,7 @@ add_action(
 /**
  * TSML CSV Download
  */
+//code that allows TSML (Online Meeting list) entries to be exported
 add_action('wp_ajax_nopriv_csv', function () {
     //going to need this later
     global $tsml_days, $tsml_programs, $tsml_program, $tsml_sharing, $tsml_export_columns, $tsml_custom_meeting_fields;
@@ -583,45 +404,10 @@ add_action('wp_ajax_nopriv_csv', function () {
 });
 
 /**
- * Create_Page
- */
-function create_page($title_of_the_page,$content,$parent_id = NULL ) 
-{
-    $objPage = get_page_by_title($title_of_the_page, 'OBJECT', 'page');
-    if( ! empty( $objPage ) )
-    {
-        echo "Page already exists:" . $title_of_the_page . "<br/>";
-        return $objPage->ID;
-    }
-    
-    $page_id = wp_insert_post(
-            array(
-            'comment_status' => 'close',
-            'ping_status'    => 'close',
-            'post_author'    => 1,
-            'post_title'     => ucwords($title_of_the_page),
-            'post_name'      => sanitize_title('title_of_the_page'), 
-            'post_status'    => 'publish',
-            'post_content'   => $content,
-            'post_type'      => 'page',
-            'post_parent'    =>  $parent_id //'id_of_the_parent_page_if_it_available'
-            )
-        );
-    echo "Created page_id=". $page_id." for page '".$title_of_the_page. "'<br/>";
-    return $page_id;
-}
-
-create_page( 'How it works', 'This is how it works');
-// create_page( 'Contact Us', 'The contact us page');
-// create_page( 'About Us', 'The about us page');
-// create_page( 'Team', 'The team page');
-$pid = create_page( 'Sample Page', 'This is sample page');
-create_page( 'Sample SubPage 1', 'This is sample SubPage 1',$pid);
-create_page( 'Sample SubPage 2', 'This is sample SubPage 2',$pid);
-
-/**
  * Save PayPal Transaction ID
  */
+//code that captures PayPal transaction ID for district contribution transactions
+//assumes the transaction was submitted on Formidable Form ID 81
 add_action('frm_payment_paypal_ipn', 'save_frmpaypal_transaction_id');
 function save_frmpaypal_transaction_id( $vars ){
     if ( ! $vars['pay_vars']['completed'] ) {
@@ -648,6 +434,8 @@ add_filter( 'xmlrpc_methods', 'remove_xmlrpc_methods' );
 /**
  * ARC Address Override
  */
+// address override for ARC for online meeting guide because of Google geocoder error
+// Google geocoder was placing meeting in wrong place (466 E Route 173 instead of W places in Spring Grove instead of Antioch)
 if (function_exists('tsml_custom_addresses')) {
     tsml_custom_addresses(array(
         '466 W Illinois Route 173' => array(
@@ -664,6 +452,7 @@ if (function_exists('tsml_custom_addresses')) {
  * Post-Upload_Attachment_Processing
  */
 // add_action( "add_attachment", "execute_on_add_attachment_event" , 10, 1);
+// adds submitted metadata to uploads submitted on https://district10nia.org/upload_page/
 function execute_on_add_attachment_event($attachment_id, $doctype, $title) {
 //	echo "Attachment is " . $attachment_id . "<br>";
 //	echo "Doctype is " . $doctype . "<br>";
@@ -728,35 +517,6 @@ function cvp_theme_pdf_preview( $attachment, $post, $dimensions ) {
 }
 
 /**
- * File Upload Handler
- */
-add_action( "processUpload", "my_custom_file_upload_action" , 10, 1);
-function my_custom_file_upload_action( $attachment_id ) {
-    // Get attachment metadata
-    $message = "Running code now!";
-    echo "<script type='text/javascript'>alert('$message');</script>";
-    $attachment = get_post( $attachment_id );
-    $file_path = get_attached_file( $attachment_id );
-    $file_mime_type = get_post_mime_type( $attachment_id );
-     wp_mail( 'webmaster@district10nia.org', 'New File Upload', 'A new Formidable Form file has been uploaded: ' . $file_path );
-    // Perform actions based on the uploaded file
-    // Example: send an email notification about the upload
-   if ($str_contains($file_path,'formidable')) {
-	    wp_mail( 'webmaster@district10nia.org', 'New File Upload', 'A new Formidable Form file has been uploaded: ' . $file_path );
-		}
-    //    wp_mail( 'admin@example.com', 'New File Upload', 'A new file has been uploaded: ' . $file_path );
-
-    // Example: add custom metadata to the attachment
-    //   update_post_meta( $attachment_id, 'custom_meta_field', 'some_value' );
-
-    // Example: resize the image (for image uploads)
-    //   if ( strpos( $file_mime_type, 'image/' ) !== false ) {
-    // ... (image resizing code)
-    }
-}
-add_action( 'add_attachment', 'my_custom_file_upload_action' );
-
-/**
  * Modify Metadata after Upload
  */
 add_action('frm_after_create_entry', 'modify_uploaded_file_metadata', 10, 2);
@@ -781,67 +541,9 @@ function modify_uploaded_file_metadata($entry_id, $form_id) {
 }
 
 /**
- * Add Metadata to Upload
- */
-add_action('frm_after_create_entry', 'add_uploaded_file_metadata', 30, 2);
-function add_uploaded_file_alt( $entry_id, $form_id ) {
-        if ( $form_id == 88 ) { //replace 88 with the id of the form
-		// Get all uploaded file attachment IDs
-            $media_ids = $_POST['item_meta'][1076]; //Replace 1076 with the ID of your file upload field
-		foreach ( (array)$media_ids as $id ) {
-			if ( ! $id ) {
-				continue;
-			}
-			// Assign title
-			$title = $_POST['item_meta'][1065]; //Field 1065 has the event name for title
-			$mydata = array(
-  				'ID' => $id,
-			    'post_title' => $title
-			);
-			wp_update_post($mydata);
-		  }
-      }
-}
-
-/**
- * Get Flyer IDs
- */
-function getflyerids() {
-$args = array(
-        'type' => 'attachment',
-//        'category_name' => 'Flyer'
-        );
-    $attachments = get_posts($args);
-    echo <p>$attachments</p>;
-}
-add_shortcode('getIDs', 'getflyerids');
-
-/**
- * New After Upload Metadata
- */
-add_action('frm_after_create_entry', 'add_uploaded_file_alt', 30, 2);
-function add_uploaded_file_alt( $entry_id, $form_id ) {
-        if ( $form_id == 88 ) { //replace 5 with the id of the form
-		// Get all uploaded file attachment IDs
-            $media_ids = $_POST['item_meta'][1076];//Replace 519 with the ID of your file upload field
-		foreach ( (array)$media_ids as $id ) {
-			if ( ! $id ) {
-				continue;
-			}
-			// Assign title
-			$title = $_POST['item_meta'][1065];
-			$mydata = array(
-  				'ID' => $id,
-			    'post_title' => $title
-			);
-			wp_update_post($mydata);
-		  }
-	    }
-}
-
-/**
  * Flyer Upload Metadata - Flyer Only
  */
+// adds metadata to flyer data submitted on Formidable Form ID 88
 add_action('frm_after_create_entry', 'add_uploaded_file_alt', 30, 2);
 function add_uploaded_file_alt( $entry_id, $form_id ) {
         if ( $form_id == 88 ) { //replace 85 with the id of the form
@@ -886,6 +588,7 @@ add_shortcode('file_meta', 'add_uploaded_file_alt');
 /**
  * Flyer Upload Metadata - Event
  */
+// adds metadata to event and flyer data submitted on Formidable Form ID 87
 add_action('frm_after_create_entry', 'add_uploaded_file_meta_event', 30, 2);
 function add_uploaded_file_meta_event( $entry_id, $form_id ) {
         if ( $form_id == 87 ) { //replace 85 with the id of the form
@@ -945,3 +648,53 @@ if ( $entries ) {
 } else {
     echo "No entries found for Form ID " . $form_id . ".";
 }
+
+/**
+ * Upload Document Metadata
+ */
+// adds metadata to flyer data submitted on Formidable Form ID 88 (flyer) or 90 (reports and newsletter)
+add_action('frm_after_create_entry', 'add_uploaded_doc_metadata', 30, 2);
+function add_uploaded_doc_metadata( $entry_id, $form_id ) {
+		// Get all uploaded file attachment IDs
+		 if ( $form_id == 90 ) { //replace 85 with the id of the form
+//change the following line to the current year category at the start of each year, yrcat=1036 is 2025, 1041 is 2026
+     $yrcat = 1036;
+     $media_ids = $_POST['item_meta'][1121];//Replace 996 with the ID of your file upload field
+		foreach ( (array)$media_ids as $id ) {
+			if ( ! $id ) {
+				continue;
+			}
+			// Assign title
+			$doctype = $_POST['item_meta'][1125]; //Replace 990 with the ID of the document type field
+			$title = $_POST['item_meta'][1128]; //Replace 990 with the ID of the month field
+			$mydata = array(
+  				'ID' => $id,
+			    'post_title' => $title
+			);
+			wp_update_post($mydata);
+// switch for title value here		
+			switch ($doctype) {
+            case 'Minutes':
+		$uploadCategory = array($yrcat,974,933,923);
+        break;
+  case 'Treasurer Report':
+		$uploadCategory = array($yrcat,935);
+        break;
+  case 'Newsletter':
+		$uploadCategory = array($yrcat,975,922,937);
+		break;		
+	default:
+    	$uploadCategory = array($yrcat);
+		break;
+			}
+//end switch
+			wp_set_object_terms($id,$uploadCategory,'category');
+//			echo ('<p>WP Post ID is ' . $id . '</p>' );
+//			echo ('<p>Formidable Entry ID is ' . $entry_id . '</p>');
+			FrmEntryMeta::add_entry_meta( $entry_id, 1123, "", $id);//change 998 to the ID of the field to store postID
+		  }
+//end foreach
+	    }
+//end main
+}
+add_shortcode('file_meta', 'add_uploaded_doc_metadata');
